@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor de Disponibilidad</title>
+    <style>
+        /* Variables de color */
+        :root {
+            --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333;
+            --text-muted: #666666; --border-color: #e0e0e0; --primary-color: #4a148c;
+            --primary-light: #7c43bd; --open-color: #00c853; --closed-color: #d50000;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode {
+            --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #ffffff;
+            --text-muted: #aaaaaa; --border-color: #333333; --primary-color: #7c43bd;
+            --primary-light: #9c27b0; --open-color: #00e676; --closed-color: #ff1744;
+            --shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body { background-color: #222; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+        .phone-frame {
+            width: 100%; max-width: 400px; height: 800px; background-color: var(--bg-color);
+            border-radius: 30px; border: 10px solid #000; position: relative; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+
+        .screen { display: none; height: 100%; flex-direction: column; padding: 20px; overflow-y: auto; background-color: var(--bg-color); }
+        .screen.active { display: flex; }
+
+        h2 { margin-bottom: 15px; font-size: 1.2rem; color: var(--text-color); }
+        p { font-size: 0.9rem; color: var(--text-muted); }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
+        
+        /* Reloj en vivo */
+        .live-clock { text-align: center; font-size: 0.8rem; color: var(--primary-light); font-weight: bold; margin-bottom: 15px; }
+
+        .search-bar {
+            background: var(--surface-color); border: 1px solid var(--border-color); padding: 12px 15px;
+            border-radius: 10px; color: var(--text-color); font-size: 1rem; margin-bottom: 20px; width: 100%; box-shadow: var(--shadow);
+        }
+
+        .card {
+            background: var(--surface-color); border-radius: 15px; padding: 15px; margin-bottom: 10px;
+            cursor: pointer; transition: transform 0.2s; border-left: 5px solid transparent; box-shadow: var(--shadow);
+        }
+        .card.open { border-left-color: var(--open-color); }
+        .card.closed { border-left-color: var(--closed-color); }
+        .card:hover { transform: scale(1.02); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: var(--text-color); }
+        .status-badge { padding: 4px 8px; border-radius: 5px; font-size: 0.8rem; font-weight: bold; }
+        .status-badge.open { background: rgba(0, 200, 83, 0.15); color: var(--open-color); }
+        .status-badge.closed { background: rgba(213, 0, 0, 0.15); color: var(--closed-color); }
+
+        .back-btn { background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer; margin-bottom: 10px; text-align: left; }
+        .detail-header { border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 15px;}
+        
+        .schedule-info {
+            display: flex; justify-content: space-between; background: var(--surface-color); 
+            padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border-color);
+        }
+        .schedule-info span { font-size: 0.85rem; color: var(--text-color); font-weight: bold;}
+        .schedule-info span i { color: var(--text-muted); font-weight: normal; font-style: normal;}
+
+        .map-mock {
+            width: 100%; height: 180px; border-radius: 10px; margin-bottom: 15px; position: relative; overflow: hidden; border: 1px solid var(--border-color);
+            background-image: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');
+            background-size: cover; background-position: center; filter: grayscale(30%);
+        }
+        body.dark-mode .map-mock { filter: grayscale(80%) brightness(0.6); }
+
+        .map-pin {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%);
+            width: 30px; height: 30px; background-color: #d50000; border-radius: 50% 50% 50% 0;
+            transform: translate(-50%, -100%) rotate(-45deg); box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .map-pin::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background-color: white; border-radius: 50%; }
+
+        .vote-section { background: var(--surface-color); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
+        .vote-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 10px;}
+        .btn-vote {
+            background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 8px; color: var(--text-color);
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.9rem; font-weight: bold; width: 100px;
+        }
+        .btn-vote.valid { border: 1px solid var(--open-color); color: var(--open-color); }
+        .btn-vote.invalid { border: 1px solid var(--closed-color); color: var(--closed-color); }
+
+        .chat-container { flex-grow: 1; display: flex; flex-direction: column; }
+        .chat-messages { flex-grow: 1; background: var(--surface-color); border-radius: 10px; padding: 10px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); }
+        .message { margin-bottom: 8px; font-size: 0.85rem; color: var(--text-color); border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
+        .message strong { color: var(--primary-light); }
+        .message span { color: var(--text-muted); font-size: 0.7rem; margin-left: 5px;}
+        
+        .chat-input-area { display: flex; gap: 5px; }
+        .chat-input { flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); }
+        .btn-send { background: var(--primary-color); border: none; padding: 10px 15px; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;}
+
+        .settings-group { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .settings-group label { display: block; color: var(--text-color); margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;}
+        .settings-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-bottom: 15px;}
+        
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface-color); padding: 30px; border-radius: 20px; text-align: center; width: 85%; box-shadow: var(--shadow);}
+        .modal-content input { width: 100%; padding: 10px; margin: 15px 0; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);}
+        .btn-primary { background: var(--primary-color); border: none; padding: 12px; border-radius: 8px; color: white; cursor: pointer; width: 100%; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+    <div class="phone-frame">
+        
+        <!-- PANTALLA 1: LISTA -->
+        <div id="screen-list" class="screen active">
+            <div class="header-bar">
+                <h2>🔍 Servicios</h2>
+                <button class="icon-btn" onclick="goToScreen('screen-settings')">⚙️</button>
+            </div>
+            
+            <!-- Reloj en vivo para demostrar que es real -->
+            <div class="live-clock" id="clock-display">Cargando hora actual...</div>
+
+            <input type="text" id="search-bar" class="search-bar" placeholder="Buscar servicio..." onkeyup="filterSearch()">
+            
+            <div id="places-list"></div>
+        </div>
+
+        <!-- PANTALLA 2: DETALLE -->
+        <div id="screen-detail" class="screen">
+            <button class="back-btn" onclick="goToScreen('screen-list')">← Volver</button>
+            
+            <div class="detail-header">
+                <h2 id="detail-title">Nombre Lugar</h2>
+                <span id="detail-status" class="status-badge open">Calculando...</span>
+                
+                <div class="schedule-info">
+                    <span>🕒 Abre: <i id="detail-open-time">--:--</i></span>
+                    <span>🕒 Cierra: <i id="detail-close-time">--:--</i></span>
+                </div>
+            </div>
+
+            <div class="map-mock">
+                <div class="map-pin"></div>
+            </div>
+
+            <div class="vote-section">
+                <p style="color: var(--text-color); font-weight: bold; margin-bottom: 5px;">¿Es correcto este estado?</p>
+                <p id="vote-total" style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-muted);">Han opinado 0 personas</p>
+                <div class="vote-buttons">
+                    <button id="vote-yes-btn" class="btn-vote valid" onclick="vote(true)">✔ Sí (0%)</button>
+                    <button id="vote-no-btn" class="btn-vote invalid" onclick="vote(false)">✖ No (0%)</button>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <h2 style="font-size: 1rem; margin-bottom: 10px;">💬 Reportes en vivo</h2>
+                <div class="chat-messages" id="chat-box"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="Aporta info...">
+                    <button class="btn-send" onclick="tryComment()">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 3: CONFIGURACIONES -->
+        <div id="screen-settings" class="screen">
+            <button class="back-btn" onclick="goToScreen('screen-list')">← Volver</button>
+            <h2>⚙️ Configuraciones</h2>
+            <div class="settings-group">
+                <label>Modo Oscuro</label>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="settings-group">
+                <label>Nombre de Usuario</label>
+                <input type="text" id="username-input" class="settings-input" value="@tú" onkeyup="updateUsername()">
+            </div>
+        </div>
+
+        <!-- MODAL LOGIN -->
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <h2>Registro requerido</h2>
+                <p style="margin-bottom: 15px; color: var(--text-color);">Para evitar bots, necesitas una cuenta para aportar.</p>
+                <input type="text" placeholder="Correo electrónico">
+                <button class="btn-primary" onclick="fakeLogin()">Simular Inicio de Sesión</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // === 1. BASE DE DATOS ===
+        // Nota: El estado (status) y type (open/closed) ya no están hardcodeados, se calculan.
+        const placesData = {
+            'cesfam': {
+                name: 'CESFAM Víctor Manuel Fernández', openTime: '08:00', closeTime: '17:00',
+                votes: { yes: 145, no: 12 },
+                comments: [
+                    { user: '@usuario_c', time: 'hace 2 min', text: 'Hay fila moderada, avanzando rápido.' },
+                    { user: '@maria_p', time: 'hace 15 min', text: 'Confirmo, sistema funcionando.' },
+                    { user: '@anonimo', time: 'hace 40 min', text: 'El doctor llegó tarde, pero ya están atendiendo.' },
+                    { user: '@juanito', time: 'hace 1 h', text: 'Saqué hora para mañana, todo muy rápido.' },
+                    { user: '@carla_v', time: 'hace 1.5 h', text: 'La farmacia está entregando sin problemas.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Llegué a las 9 y ya había harta gente.' },
+                    { user: '@pedro', time: 'hace 2.5 h', text: 'Buen día, atienden rápido los TENS.' },
+                    { user: '@lorena', time: 'hace 3 h', text: '¿Alguien sabe si el dentista está hoy? Sí, está.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Abrieron justo a las 8:00.' },
+                    { user: '@gabo', time: 'hace 5 h', text: 'Ayer cerraron antes, hoy parece normal.' }
+                ]
+            },
+            'registro': {
+                name: 'Registro Civil Concepción', openTime: '08:30', closeTime: '14:00',
+                votes: { yes: 210, no: 5 },
+                comments: [
+                    { user: '@anonimo', time: 'hace 5 min', text: 'Confirmo, sistema funcionando.' },
+                    { user: '@pedro', time: 'hace 1 h', text: 'Fila rápida para cédulas, pero lento para pasaportes.' },
+                    { user: '@sofia_m', time: 'hace 1 h', text: 'El tótem de autoatención está funcionando.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Hay un guardia afuera organizando la fila.' },
+                    { user: '@diego', time: 'hace 2.5 h', text: 'Llegué a las 10 am y salí en 30 min.' },
+                    { user: '@ana_r', time: 'hace 3 h', text: 'Está lleno pero avanza.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Ojo, para pasaportes hay que sacar hora por internet primero.' },
+                    { user: '@marcos', time: 'hace 5 h', text: 'Todo normal hoy.' },
+                    { user: '@vero', time: 'hace 6 h', text: 'Solo están atendiendo por orden de llegada hoy.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Abrieron puntual.' }
+                ]
+            },
+            'municipalidad': {
+                name: 'Municipalidad de Concepción', openTime: '09:00', closeTime: '13:30',
+                votes: { yes: 4, no: 98 },
+                comments: [
+                    { user: '@vecino', time: 'hace 10 min', text: 'Ya cerraron las puertas, no hay nadie.' },
+                    { user: '@juanito', time: 'hace 45 min', text: 'Llegué a las 13:50 y ya estaban cerrando las cajas.' },
+                    { user: '@anonimo', time: 'hace 1 h', text: 'Confirmo, está cerrado. El horario dice 13:30.' },
+                    { user: '@maria', time: 'hace 2 h', text: 'Fui a pagar el permiso de circulación y estaba cerrado.' },
+                    { user: '@carlos', time: 'hace 3 h', text: 'Volveré mañana temprano.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Al parecer hay un sistema caído y cerraron antes.' },
+                    { user: '@pepe', time: 'hace 5 h', text: 'Solo atienden hasta la 1:30 pm hoy.' },
+                    { user: '@lucia', time: 'hace 6 h', text: 'Qué lata, tuve que faltar al trabajo para nada.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Hay un cartel que dice "Cerrado por capacitación".' },
+                    { user: '@raul', time: 'hace 8 h', text: 'Mañana abren a las 9.' }
+                ]
+            },
+            'sii': {
+                name: 'SII (Impuestos Internos)', openTime: '09:00', closeTime: '14:00',
+                votes: { yes: 89, no: 20 },
+                comments: [
+                    { user: '@contadora', time: 'hace 8 min', text: 'Atención rápida hoy, casi sin espera.' },
+                    { user: '@anonimo', time: 'hace 30 min', text: 'El sistema de RUT está funcionando bien.' },
+                    { user: '@jorge_m', time: 'hace 1 h', text: 'Harta gente en la fila de declaraciones.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Atienden por orden de llegada.' },
+                    { user: '@camila', time: 'hace 3 h', text: 'Muy buena atención del ejecutivo de hoy.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Fila avanza lento pero seguro.' },
+                    { user: '@pedro_a', time: 'hace 5 h', text: 'Recomiendo ir en la mañana.' },
+                    { user: '@anonimo', time: 'hace 6 h', text: 'El guardia pide el carnet para entrar.' },
+                    { user: '@laura', time: 'hace 7 h', text: 'Abrieron a las 9 en punto.' },
+                    { user: '@anonimo', time: 'hace 8 h', text: 'Todo normal.' }
+                ]
+            },
+            'sapu': {
+                name: 'SAPU Lorenzo Arenas', openTime: '00:00', closeTime: '23:59', // 24 Horas
+                votes: { yes: 340, no: 45 },
+                comments: [
+                    { user: '@anonimo', time: 'hace 1 min', text: 'Hay harta espera, vengan con paciencia.' },
+                    { user: '@carlos_m', time: 'hace 20 min', text: 'Fiebre alta, me atendieron altiro.' },
+                    { user: '@anonimo', time: 'hace 45 min', text: 'La espera es de unas 2 horas para medicina general.' },
+                    { user: '@juan', time: 'hace 1 h', text: 'Excelente atención de los enfermeros.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Está lleno, hay gente de pie.' },
+                    { user: '@maria_l', time: 'hace 3 h', text: 'Me derivaron al hospital, pero me estabilizaron aquí.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Atienden las 24 horas, eso es bueno.' },
+                    { user: '@pedro_s', time: 'hace 5 h', text: 'Falta personal, pero hacen lo que pueden.' },
+                    { user: '@anonimo', time: 'hace 6 h', text: 'Hay un policía afuera resguardando.' },
+                    { user: '@lucho', time: 'hace 7 h', text: 'Fui en la madrugada y estaba vacío.' }
+                ]
+            },
+            'correos': {
+                name: 'Correos de Chile', openTime: '09:00', closeTime: '18:00',
+                votes: { yes: 3, no: 67 },
+                comments: [
+                    { user: '@carta', time: 'hace 30 min', text: 'Cerrado por inventario, hay un papel en la puerta.' },
+                    { user: '@anonimo', time: 'hace 1 h', text: 'No hay nadie, está todo oscuro.' },
+                    { user: '@juan_c', time: 'hace 2 h', text: 'Mañana abren a las 9.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'Fui a buscar un encomienda y estaba cerrado.' },
+                    { user: '@maria', time: 'hace 4 h', text: 'El buzón de afuera sí funciona.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Ayer cerraron a las 6, hoy no abrieron.' },
+                    { user: '@felipe', time: 'hace 6 h', text: 'Hay un cartel de "Vuelvo a las 15:00" pero nunca volvieron.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Cerrado por paro de funcionarios.' },
+                    { user: '@lore', time: 'hace 8 h', text: 'Tendré que venir el lunes.' },
+                    { user: '@anonimo', time: 'hace 9 h', text: 'El horario en Google está mal, es hasta las 18:00.' }
+                ]
+            }
+        };
+
+        // Variables Globales
+        let isLoggedIn = false;
+        let currentUsername = "@tú";
+        let currentPlaceKey = "";
+        let hasVoted = false;
+
+        // === 2. LÓGICA DE TIEMPO REAL ===
+        function getCurrentTimeInMinutes() {
+            const now = new Date();
+            return (now.getHours() * 60) + now.getMinutes();
+        }
+
+        function timeStringToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return (hours * 60) + minutes;
+        }
+
+        function determineStatus(openTimeStr, closeTimeStr) {
+            const currentMins = getCurrentTimeInMinutes();
+            const openMins = timeStringToMinutes(openTimeStr);
+            const closeMins = timeStringToMinutes(closeTimeStr);
+
+            // Caso 24 horas (00:00 a 23:59)
+            if (openMins === 0 && closeMins >= 1439) return { status: 'Abierto', type: 'open' };
+
+            // Horario normal
+            if (openMins < closeMins) {
+                if (currentMins >= openMins && currentMins < closeMins) return { status: 'Abierto', type: 'open' };
+            } 
+            // Horario que cruza la medianoche (Ej: 22:00 a 02:00)
+            else if (openMins > closeMins) {
+                if (currentMins >= openMins || currentMins < closeMins) return { status: 'Abierto', type: 'open' };
+            }
+            
+            return { status: 'Cerrado', type: 'closed' };
+        }
+
+        function updateSystemClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('clock-display').innerText = `🟢 Reloj en vivo: ${timeString} (Evaluando horarios reales)`;
+        }
+
+        // === 3. RENDERIZAR LISTA DINÁMICAMENTE ===
+        function renderList() {
+            const listContainer = document.getElementById('places-list');
+            listContainer.innerHTML = '';
+
+            // Actualizar reloj
+            updateSystemClock();
+
+            for (const [key, data] of Object.entries(placesData)) {
+                // Calcular estado real aquí y ahora
+                const currentStatus = determineStatus(data.openTime, data.closeTime);
+                
+                const card = document.createElement('div');
+                card.className = `card ${currentStatus.type}`;
+                card.id = `card-${key}`;
+                card.onclick = () => openDetail(key);
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <strong>${data.name}</strong>
+                        <span class="status-badge ${currentStatus.type}">${currentStatus.status}</span>
+                    </div>
+                    <p>Horario: ${data.openTime} - ${data.closeTime}</p>
+                `;
+                listContainer.appendChild(card);
+            }
+        }
+
+        // === 4. NAVEGACIÓN Y FILTRO ===
+        function goToScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            if(screenId === 'screen-list') updateSystemClock(); // Actualizar reloj al volver
+        }
+
+        function filterSearch() {
+            let input = document.getElementById('search-bar').value.toLowerCase();
+            let cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                let title = card.querySelector('strong').innerText.toLowerCase();
+                card.style.display = title.includes(input) ? "block" : "none";
+            });
+        }
+
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+
+        function updateUsername() {
+            let input = document.getElementById('username-input').value;
+            if(!input.startsWith('@')) { input = '@' + input; }
+            currentUsername = input;
+        }
+
+        // === 5. DETALLE (Con cálculo de tiempo real) ===
+        function openDetail(placeKey) {
+            goToScreen('screen-detail');
+            currentPlaceKey = placeKey;
+            hasVoted = false;
+
+            const data = placesData[placeKey];
+            const currentStatus = determineStatus(data.openTime, data.closeTime);
+
+            // Cabecera y Estado (Dinámico)
+            document.getElementById('detail-title').innerText = data.name;
+            const statusBadge = document.getElementById('detail-status');
+            statusBadge.innerText = currentStatus.status;
+            statusBadge.className = `status-badge ${currentStatus.type}`;
+            
+            // Horas
+            document.getElementById('detail-open-time').innerText = data.openTime;
+            document.getElementById('detail-close-time').innerText = data.closeTime;
+
+            // Chat
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            data.comments.forEach(c => {
+                chatBox.innerHTML += `<div class="message"><strong>${c.user}</strong> <span>${c.time}</span><br>${c.text}</div>`;
+            });
+
+            // Votos
+            updateVoteUI();
+        }
+
+        // === 6. VOTOS Y CHAT ===
+        function updateVoteUI() {
+            const data = placesData[currentPlaceKey].votes;
+            const total = data.yes + data.no;
+            const pctYes = Math.round((data.yes / total) * 100);
+            const pctNo = 100 - pctYes;
+
+            document.getElementById('vote-total').innerText = `Han opinado ${total} personas`;
+            document.getElementById('vote-yes-btn').innerText = `✔ Sí (${pctYes}%)`;
+            document.getElementById('vote-no-btn').innerText = `✖ No (${pctNo}%)`;
+        }
+
+        function vote(isValid) {
+            if (!isLoggedIn) {
+                document.getElementById('login-modal').classList.add('active');
+                return;
+            }
+            if (hasVoted) { alert("Ya has votado en este lugar."); return; }
+
+            if (isValid) placesData[currentPlaceKey].votes.yes++;
+            else placesData[currentPlaceKey].votes.no++;
+            
+            hasVoted = true;
+            updateVoteUI();
+
+            const btn = isValid ? document.getElementById('vote-yes-btn') : document.getElementById('vote-no-btn');
+            btn.style.transform = "scale(0.95)";
+            setTimeout(() => btn.style.transform = "scale(1)", 150);
+        }
+
+        function tryComment() {
+            if (!isLoggedIn) document.getElementById('login-modal').classList.add('active');
+            else addComment();
+        }
+
+        function fakeLogin() {
+            isLoggedIn = true;
+            document.getElementById('login-modal').classList.remove('active');
+            if(document.getElementById('chat-input').value.trim() !== "") addComment(); 
+        }
+
+        function addComment() {
+            const input = document.getElementById('chat-input');
+            const text = input.value;
+            if (text.trim() === "") return;
+
+            const chatBox = document.getElementById('chat-box');
+            const newMsg = document.createElement('div');
+            newMsg.className = 'message';
+            newMsg.innerHTML = `<strong>${currentUsername}</strong> <span>ahora mismo</span><br>${text}`;
+            chatBox.insertBefore(newMsg, chatBox.firstChild);
+            
+            placesData[currentPlaceKey].comments.unshift({ user: currentUsername, time: 'ahora mismo', text: text });
+            input.value = "";
+        }
+
+        // === 7. INICIALIZACIÓN Y ACTUALIZACIÓN AUTOMÁTICA ===
+        window.onload = () => { 
+            renderList(); 
+            // Actualizar los estados cada 60 segundos si la página queda abierta
+            setInterval(() => {
+                if(document.getElementById('screen-list').classList.contains('active')) {
+                    renderList();
+                }
+            }, 60000);
+        };
+    </script>
+</body>
+</html>
