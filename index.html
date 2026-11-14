@@ -5,26 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensor de Disponibilidad</title>
     <style>
+        /* Variables de color (Modo Claro por defecto) */
         :root {
             --bg-color: #f5f5f5; --surface-color: #ffffff; --text-color: #333333;
             --text-muted: #666666; --border-color: #e0e0e0; --primary-color: #4a148c;
             --primary-light: #7c43bd; --open-color: #00c853; --closed-color: #d50000;
             --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+        /* Variables de color (Modo Oscuro) */
         body.dark-mode {
             --bg-color: #121212; --surface-color: #1e1e1e; --text-color: #ffffff;
             --text-muted: #aaaaaa; --border-color: #333333; --primary-color: #7c43bd;
             --primary-light: #9c27b0; --open-color: #00e676; --closed-color: #ff1744;
             --shadow: 0 4px 6px rgba(0,0,0,0.5);
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; transition: background-color 0.3s, color 0.3s; }
         body { background-color: #222; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
 
+        /* Marco del Teléfono */
         .phone-frame {
             width: 100%; max-width: 400px; height: 800px; background-color: var(--bg-color);
             border-radius: 30px; border: 10px solid #000; position: relative; overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
         }
+
         .screen { display: none; height: 100%; flex-direction: column; padding: 20px; overflow-y: auto; background-color: var(--bg-color); }
         .screen.active { display: flex; }
 
@@ -63,6 +69,7 @@
         .schedule-info span { font-size: 0.85rem; color: var(--text-color); font-weight: bold;}
         .schedule-info span i { color: var(--text-muted); font-weight: normal; font-style: normal;}
 
+        /* MAPA SIMULADO */
         .map-mock {
             width: 100%; height: 180px; border-radius: 10px; margin-bottom: 15px; position: relative; overflow: hidden; border: 1px solid var(--border-color);
             background-image: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');
@@ -77,6 +84,7 @@
         }
         .map-pin::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background-color: white; border-radius: 50%; }
 
+        /* Votación */
         .vote-section { background: var(--surface-color); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border-color); }
         .vote-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 10px;}
         .btn-vote {
@@ -86,6 +94,7 @@
         .btn-vote.valid { border: 1px solid var(--open-color); color: var(--open-color); }
         .btn-vote.invalid { border: 1px solid var(--closed-color); color: var(--closed-color); }
 
+        /* Chat */
         .chat-container { flex-grow: 1; display: flex; flex-direction: column; }
         .chat-messages { flex-grow: 1; background: var(--surface-color); border-radius: 10px; padding: 10px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); }
         .message { margin-bottom: 8px; font-size: 0.85rem; color: var(--text-color); border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
@@ -96,6 +105,7 @@
         .chat-input { flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); }
         .btn-send { background: var(--primary-color); border: none; padding: 10px 15px; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;}
 
+        /* Configuraciones */
         .settings-group { background: var(--surface-color); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
         .settings-group label { display: block; color: var(--text-color); margin-bottom: 8px; font-weight: bold; font-size: 0.9rem;}
         .settings-input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); margin-bottom: 15px;}
@@ -107,6 +117,7 @@
         input:checked + .slider { background-color: var(--primary-color); }
         input:checked + .slider:before { transform: translateX(26px); }
 
+        /* Modal */
         .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
         .modal-content { background: var(--surface-color); padding: 30px; border-radius: 20px; text-align: center; width: 85%; box-shadow: var(--shadow);}
@@ -139,7 +150,9 @@
                     <span>🕒 Cierra: <i id="detail-close-time">--:--</i></span>
                 </div>
             </div>
+
             <div class="map-mock"><div class="map-pin"></div></div>
+
             <div class="vote-section">
                 <p style="color: var(--text-color); font-weight: bold; margin-bottom: 5px;">¿Es correcto este estado?</p>
                 <p id="vote-total" style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-muted);">Han opinado 0 personas</p>
@@ -148,6 +161,7 @@
                     <button id="vote-no-btn" class="btn-vote invalid" onclick="vote(false)">✖ No (0%)</button>
                 </div>
             </div>
+
             <div class="chat-container">
                 <h2 style="font-size: 1rem; margin-bottom: 10px;">💬 Reportes en vivo</h2>
                 <div class="chat-messages" id="chat-box"></div>
@@ -187,7 +201,7 @@
     </div>
 
     <script>
-        // === 1. BASE DE DATOS CON COMENTARIOS DINÁMICOS (commentsOpen y commentsClosed) ===
+        // === 1. BASE DE DATOS COMPLETA (10 COMENTARIOS POR ESTADO) ===
         const placesData = {
             'cesfam': {
                 name: 'CESFAM Víctor Manuel Fernández', openTime: '08:00', closeTime: '17:00',
@@ -195,12 +209,26 @@
                 commentsOpen: [
                     { user: '@usuario_c', time: 'hace 2 min', text: 'Hay fila moderada, avanzando rápido.' },
                     { user: '@maria_p', time: 'hace 15 min', text: 'Confirmo, sistema funcionando.' },
-                    { user: '@anonimo', time: 'hace 40 min', text: 'El doctor llegó tarde, pero ya están atendiendo.' }
+                    { user: '@anonimo', time: 'hace 40 min', text: 'El doctor llegó tarde, pero ya están atendiendo.' },
+                    { user: '@juanito', time: 'hace 1 h', text: 'Saqué hora para mañana, todo muy rápido.' },
+                    { user: '@carla_v', time: 'hace 1.5 h', text: 'La farmacia está entregando sin problemas.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Llegué a las 9 y ya había harta gente.' },
+                    { user: '@pedro', time: 'hace 2.5 h', text: 'Buen día, atienden rápido los TENS.' },
+                    { user: '@lorena', time: 'hace 3 h', text: '¿Alguien sabe si el dentista está hoy? Sí, está.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Abrieron justo a las 8:00.' },
+                    { user: '@gabo', time: 'hace 5 h', text: 'Ayer cerraron antes, hoy parece normal.' }
                 ],
                 commentsClosed: [
-                    { user: '@anonimo', time: 'hace 1 h', text: 'Ya cerraron las puertas, no hay nadie.' },
-                    { user: '@pedro', time: 'hace 2 h', text: 'Llegué a las 17:10 y ya no dejaban entrar.' },
-                    { user: '@lorena', time: 'hace 3 h', text: 'Mañana abren a las 8 de nuevo.' }
+                    { user: '@anonimo', time: 'hace 10 min', text: 'Ya cerraron las puertas, no hay nadie.' },
+                    { user: '@pedro', time: 'hace 30 min', text: 'Llegué a las 17:10 y ya no dejaban entrar.' },
+                    { user: '@lorena', time: 'hace 1 h', text: 'Mañana abren a las 8 de nuevo.' },
+                    { user: '@juan', time: 'hace 2 h', text: 'Solo queda el guardia en la puerta.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'El sistema se cayó y cerraron temprano.' },
+                    { user: '@maria', time: 'hace 4 h', text: 'Fui a buscar recetas y ya estaba cerrado.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Hay un cartel que dice "Cerrado por mantención".' },
+                    { user: '@carlos', time: 'hace 6 h', text: 'Qué lata, tendré que venir mañana.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Todo oscuro, no hay atención.' },
+                    { user: '@pepe', time: 'hace 8 h', text: 'A esta hora ya no atienden.' }
                 ]
             },
             'registro': {
@@ -209,12 +237,26 @@
                 commentsOpen: [
                     { user: '@anonimo', time: 'hace 5 min', text: 'Confirmo, sistema funcionando.' },
                     { user: '@pedro', time: 'hace 1 h', text: 'Fila rápida para cédulas, lento para pasaportes.' },
-                    { user: '@sofia_m', time: 'hace 1.5 h', text: 'El tótem de autoatención está funcionando.' }
+                    { user: '@sofia_m', time: 'hace 1.5 h', text: 'El tótem de autoatención está funcionando.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Hay un guardia afuera organizando la fila.' },
+                    { user: '@diego', time: 'hace 2.5 h', text: 'Llegué a las 10 am y salí en 30 min.' },
+                    { user: '@ana_r', time: 'hace 3 h', text: 'Está lleno pero avanza.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Ojo, para pasaportes hay que sacar hora por internet primero.' },
+                    { user: '@marcos', time: 'hace 5 h', text: 'Todo normal hoy.' },
+                    { user: '@vero', time: 'hace 6 h', text: 'Solo están atendiendo por orden de llegada hoy.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Abrieron puntual.' }
                 ],
                 commentsClosed: [
                     { user: '@ana_r', time: 'hace 30 min', text: 'Cerraron justo a las 14:00, llegué tarde.' },
-                    { user: '@marcos', time: 'hace 2 h', text: 'El guardia dice que vuelva mañana a las 8:30.' },
-                    { user: '@anonimo', time: 'hace 3 h', text: 'Está todo cerrado, solo queda el buzón de documentos.' }
+                    { user: '@marcos', time: 'hace 1 h', text: 'El guardia dice que vuelva mañana a las 8:30.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Está todo cerrado, solo queda el buzón de documentos.' },
+                    { user: '@pedro', time: 'hace 3 h', text: 'Fui a renovar el carnet y ya no hay nadie.' },
+                    { user: '@lucia', time: 'hace 4 h', text: 'Cerrado por horario de almuerzo extendido.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Las luces están apagadas.' },
+                    { user: '@jorge', time: 'hace 6 h', text: 'Solo atienden hasta las 2 pm.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Tendré que hacer el trámite el lunes.' },
+                    { user: '@maria', time: 'hace 8 h', text: 'Qué fome, no alcanzó a llegar.' },
+                    { user: '@anonimo', time: 'hace 9 h', text: 'Cerrado por inventario.' }
                 ]
             },
             'municipalidad': {
@@ -223,38 +265,72 @@
                 commentsOpen: [
                     { user: '@maria', time: 'hace 10 min', text: 'Harta fila para el permiso de circulación.' },
                     { user: '@anonimo', time: 'hace 45 min', text: 'Solo están atendiendo hasta la 1:30 pm.' },
-                    { user: '@carlos', time: 'hace 1 h', text: 'Sistema funcionando normal hoy.' }
+                    { user: '@carlos', time: 'hace 1 h', text: 'Sistema funcionando normal hoy.' },
+                    { user: '@juanito', time: 'hace 2 h', text: 'La caja 3 está cerrada, pero las demás rápidas.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'Me atendieron bien en la ventanilla 5.' },
+                    { user: '@sofia', time: 'hace 4 h', text: 'Hay que sacar número en la entrada.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Fila avanza.' },
+                    { user: '@pedro', time: 'hace 6 h', text: 'Atienden los trámites de aseo.' },
+                    { user: '@lorena', time: 'hace 7 h', text: 'Todo en orden.' },
+                    { user: '@anonimo', time: 'hace 8 h', text: 'Abrieron justo a las 9.' }
                 ],
                 commentsClosed: [
-                    { user: '@vecino', time: 'hace 2 h', text: 'Ya cerraron, horario de almuerzo.' },
-                    { user: '@juanito', time: 'hace 3 h', text: 'Llegué a las 13:45 y ya no había nadie.' },
-                    { user: '@anonimo', time: 'hace 4 h', text: 'Cerrado. Hay un cartel de "Cerrado por capacitación".' }
+                    { user: '@vecino', time: 'hace 10 min', text: 'Ya cerraron, horario de almuerzo.' },
+                    { user: '@juanito', time: 'hace 30 min', text: 'Llegué a las 13:45 y ya no había nadie.' },
+                    { user: '@anonimo', time: 'hace 1 h', text: 'Cerrado. Hay un cartel de "Cerrado por capacitación".' },
+                    { user: '@maria', time: 'hace 2 h', text: 'Fui a pagar el permiso y estaba cerrado.' },
+                    { user: '@carlos', time: 'hace 3 h', text: 'Volveré mañana temprano.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Al parecer hay un sistema caído y cerraron antes.' },
+                    { user: '@pepe', time: 'hace 5 h', text: 'Solo atienden hasta la 1:30 pm.' },
+                    { user: '@lucia', time: 'hace 6 h', text: 'Qué lata, tuve que faltar al trabajo para nada.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Mañana abren a las 9.' },
+                    { user: '@raul', time: 'hace 8 h', text: 'Todo cerrado.' }
                 ]
             },
             'sii': {
-                name: 'SII (Impuestos Internos)', openTime: '09:00', closeTime: '14:00',
+                name: 'Servicio de Impuestos Internos (SII)', openTime: '09:00', closeTime: '14:00',
                 votes: { yes: 89, no: 20 },
                 commentsOpen: [
                     { user: '@contadora', time: 'hace 8 min', text: 'Atención rápida hoy, casi sin espera.' },
+                    { user: '@anonimo', time: 'hace 30 min', text: 'El sistema de RUT está funcionando bien.' },
                     { user: '@jorge_m', time: 'hace 1 h', text: 'Harta gente en la fila de declaraciones.' },
-                    { user: '@camila', time: 'hace 2 h', text: 'Muy buena atención del ejecutivo de hoy.' }
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Atienden por orden de llegada.' },
+                    { user: '@camila', time: 'hace 3 h', text: 'Muy buena atención del ejecutivo de hoy.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Fila avanza lento pero seguro.' },
+                    { user: '@pedro_a', time: 'hace 5 h', text: 'Recomiendo ir en la mañana.' },
+                    { user: '@anonimo', time: 'hace 6 h', text: 'El guardia pide el carnet para entrar.' },
+                    { user: '@laura', time: 'hace 7 h', text: 'Abrieron a las 9 en punto.' },
+                    { user: '@anonimo', time: 'hace 8 h', text: 'Todo normal.' }
                 ],
                 commentsClosed: [
-                    { user: '@anonimo', time: 'hace 1 h', text: 'Ya cerraron, es hasta las 14:00.' },
-                    { user: '@pedro_a', time: 'hace 2 h', text: 'Mañana abren a las 9.' },
-                    { user: '@laura', time: 'hace 3 h', text: 'Todo cerrado, no hay luces encendidas.' }
+                    { user: '@anonimo', time: 'hace 10 min', text: 'Ya cerraron, es hasta las 14:00.' },
+                    { user: '@pedro_a', time: 'hace 30 min', text: 'Mañana abren a las 9.' },
+                    { user: '@laura', time: 'hace 1 h', text: 'Todo cerrado, no hay luces encendidas.' },
+                    { user: '@jorge', time: 'hace 2 h', text: 'Llegué a las 14:15 y estaba cerrado.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'Solo queda la oficina de partes.' },
+                    { user: '@maria', time: 'hace 4 h', text: 'No hay atención presencial a esta hora.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Tendré que hacer el trámite virtual.' },
+                    { user: '@carlos', time: 'hace 6 h', text: 'Cerrado por inventario.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'El cartel dice "Cerrado hasta mañana".' },
+                    { user: '@pepe', time: 'hace 8 h', text: 'Qué lata.' }
                 ]
             },
             'sapu': {
                 name: 'SAPU Lorenzo Arenas', openTime: '00:00', closeTime: '23:59',
                 votes: { yes: 340, no: 45 },
-                // Como es 24/7, el chat abierto siempre está activo.
                 commentsOpen: [
                     { user: '@anonimo', time: 'hace 1 min', text: 'Hay harta espera, vengan con paciencia.' },
                     { user: '@carlos_m', time: 'hace 20 min', text: 'Fiebre alta, me atendieron altiro.' },
-                    { user: '@anonimo', time: 'hace 45 min', text: 'La espera es de unas 2 horas para medicina general.' }
+                    { user: '@anonimo', time: 'hace 45 min', text: 'La espera es de unas 2 horas para medicina general.' },
+                    { user: '@juan', time: 'hace 1 h', text: 'Excelente atención de los enfermeros.' },
+                    { user: '@anonimo', time: 'hace 2 h', text: 'Está lleno, hay gente de pie.' },
+                    { user: '@maria_l', time: 'hace 3 h', text: 'Me derivaron al hospital, pero me estabilizaron aquí.' },
+                    { user: '@anonimo', time: 'hace 4 h', text: 'Atienden las 24 horas, eso es bueno.' },
+                    { user: '@pedro_s', time: 'hace 5 h', text: 'Falta personal, pero hacen lo que pueden.' },
+                    { user: '@anonimo', time: 'hace 6 h', text: 'Hay un policía afuera resguardando.' },
+                    { user: '@lucho', time: 'hace 7 h', text: 'Fui en la madrugada y estaba vacío.' }
                 ],
-                commentsClosed: [] // No aplica, pero lo dejamos por si acaso
+                commentsClosed: [] // No aplica para SAPU
             },
             'correos': {
                 name: 'Correos de Chile', openTime: '09:00', closeTime: '18:00',
@@ -262,16 +338,31 @@
                 commentsOpen: [
                     { user: '@anonimo', time: 'hace 5 min', text: 'Fila rápida para retirar encomiendas.' },
                     { user: '@juan_c', time: 'hace 1 h', text: 'Atendiendo normal, hay 3 cajas abiertas.' },
-                    { user: '@maria', time: 'hace 2 h', text: 'El buzón de afuera está funcionando.' }
+                    { user: '@maria', time: 'hace 2 h', text: 'El buzón de afuera está funcionando.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'Llegó mi paquete de AliExpress, todo bien.' },
+                    { user: '@pedro', time: 'hace 4 h', text: 'Rápido el trámite.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Hay que hacer fila para encomiendas y otra para cartas.' },
+                    { user: '@lucia', time: 'hace 6 h', text: 'Buen servicio hoy.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Abrieron puntual.' },
+                    { user: '@raul', time: 'hace 8 h', text: 'Todo normal.' },
+                    { user: '@anonimo', time: 'hace 9 h', text: 'El sistema de seguimiento funciona.' }
                 ],
                 commentsClosed: [
                     { user: '@carta', time: 'hace 30 min', text: 'Cerrado por inventario, hay un papel en la puerta.' },
                     { user: '@anonimo', time: 'hace 1 h', text: 'No hay nadie, está todo oscuro.' },
-                    { user: '@felipe', time: 'hace 3 h', text: 'Cerraron temprano hoy, mañana a las 9.' }
+                    { user: '@juan_c', time: 'hace 2 h', text: 'Mañana abren a las 9.' },
+                    { user: '@anonimo', time: 'hace 3 h', text: 'Fui a buscar un encomienda y estaba cerrado.' },
+                    { user: '@maria', time: 'hace 4 h', text: 'El buzón de afuera sí funciona.' },
+                    { user: '@anonimo', time: 'hace 5 h', text: 'Ayer cerraron a las 6, hoy no abrieron.' },
+                    { user: '@felipe', time: 'hace 6 h', text: 'Hay un cartel de "Vuelvo a las 15:00" pero nunca volvieron.' },
+                    { user: '@anonimo', time: 'hace 7 h', text: 'Cerrado por paro de funcionarios.' },
+                    { user: '@lore', time: 'hace 8 h', text: 'Tendré que venir el lunes.' },
+                    { user: '@anonimo', time: 'hace 9 h', text: 'El horario en Google está mal, es hasta las 18:00.' }
                 ]
             }
         };
 
+        // Variables Globales
         let isLoggedIn = false;
         let currentUsername = "@tú";
         let currentPlaceKey = "";
@@ -293,11 +384,15 @@
             const openMins = timeStringToMinutes(openTimeStr);
             const closeMins = timeStringToMinutes(closeTimeStr);
 
+            // Si es 24 horas
             if (openMins === 0 && closeMins >= 1439) return { status: 'Abierto', type: 'open' };
 
+            // Horario normal
             if (openMins < closeMins) {
                 if (currentMins >= openMins && currentMins < closeMins) return { status: 'Abierto', type: 'open' };
-            } else if (openMins > closeMins) {
+            } 
+            // Cruza medianoche
+            else if (openMins > closeMins) {
                 if (currentMins >= openMins || currentMins < closeMins) return { status: 'Abierto', type: 'open' };
             }
             return { status: 'Cerrado', type: 'closed' };
@@ -351,8 +446,7 @@
             document.getElementById('detail-open-time').innerText = data.openTime;
             document.getElementById('detail-close-time').innerText = data.closeTime;
 
-            // --- AQUI ESTÁ LA MAGIA ---
-            // Seleccionamos el arreglo de comentarios según el estado actual
+            // Seleccionar comentarios (Abierto o Cerrado)
             const commentsToRender = currentStatus.type === 'open' ? data.commentsOpen : data.commentsClosed;
 
             const chatBox = document.getElementById('chat-box');
@@ -369,7 +463,7 @@
             updateVoteUI();
         }
 
-        // === 5. NAVEGACIÓN Y RESTO DE FUNCIONES ===
+        // === 5. NAVEGACIÓN Y FUNCIONES ===
         function goToScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
@@ -386,6 +480,7 @@
         }
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+        
         function updateUsername() {
             let input = document.getElementById('username-input').value;
             if(!input.startsWith('@')) { input = '@' + input; }
@@ -433,7 +528,7 @@
             newMsg.innerHTML = `<strong>${currentUsername}</strong> <span>ahora mismo</span><br>${text}`;
             chatBox.insertBefore(newMsg, chatBox.firstChild);
             
-            // Guardar en el arreglo correcto (Abierto o Cerrado)
+            // Guardar en el arreglo correcto
             const currentStatus = determineStatus(placesData[currentPlaceKey].openTime, placesData[currentPlaceKey].closeTime);
             const targetArray = currentStatus.type === 'open' ? placesData[currentPlaceKey].commentsOpen : placesData[currentPlaceKey].commentsClosed;
             targetArray.unshift({ user: currentUsername, time: 'ahora mismo', text: text });
